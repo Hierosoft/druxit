@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "druxit"
+version = "0.1.0"
+description = "Dynamic Drupal 9 content exporter for migration to other CMS platforms"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Jake Gustafson", email = "7557867+Poikilos@users.noreply.github.com" }
+]
+keywords = ["drupal", "export", "migration", "cms", "mysql"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+    "mysql-connector-python>=8.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/Hierosoft/druxit"
+Repository = "https://github.com/Hierosoft/druxit"
+Issues = "https://github.com/Hierosoft/druxit/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black",
+    "flake8",
+    "mypy"
+]
+
+[tool.hatch.build]
+packages = ["druxit"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.mypy]
+python_version = "3.8"
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = "tests/"
+
+[tool.pytest.ini_options]
+addopts = "-ra -q"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
