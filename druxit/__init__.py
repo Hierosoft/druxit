@@ -1,12 +1,8 @@
-"""Druxit – dynamic Drupal 9 exporter.
+# druxit/__init__.py
+"""Druxit – complete Drupal 9 state exporter.
 
-This module exports published pages and articles from a Drupal 9 database
-with full support for custom fields, taxonomy, URL aliases, and paragraph
-children/parents. All discovery is dynamic – no hardcoded field names.
-
-Example:
-    >>> from druxit import export_nodes
-    >>> export_nodes(db="mydb", user="root", password="secret")
+Collects full node metadata, users, taxonomy, files, and relationships
+using only documented Drupal 9 table structures.
 """
 
 __version__ = "0.1.0"
@@ -14,276 +10,296 @@ __version__ = "0.1.0"
 import json
 import os
 import getpass
+from typing import Dict, List, Any, Optional
 import mysql.connector
-from typing import List, Dict, Any
+from logging import getLogger
 
 
 SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "settings.json")
-BLACKLIST = ["_zen_", "_revision"]
 
 
-def _load_settings() -> Dict[str, str]:
-    """Load connection settings from settings.json if present.
-
-    Returns:
-        Dict containing 'database', 'user', and optionally 'password'.
-    """
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE) as f:
-            return json.load(f)
-    return {}
+if __name__ == "__main__":
+    logger = getLogger(os.path.split(__file__)[1])
+else:
+    logger = getLogger(__name__)
 
 
-def _save_settings(db: str, user: str, password: str | None = None) -> None:
-    """Save connection settings to settings.json.
+class DrupalState:
+    """Complete in-memory state of a Drupal 9 site for export."""
 
-    Args:
-        db: Database name.
-        user: Database username.
-        password: Database password (optional; omit to remove from file).
-    """
-    data = {"database": db, "user": user}
-    if password is not None:
-        data["password"] = password
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    def __init__(self, db: str, user: str, password: str, host: str = "localhost"):
+        """Initialize and populate all tables.
+
+        Args:
+            db: Database name.
+            user: Database username.
+            password: Database password.
+            host: MySQL host.
+        """
+        self.conn = mysql.connector.connect(
+            host=host, database=db, user=user, password=password
+        )
+        self.cur = self.conn.cursor(dictionary=True)
+
+        # Core collections
+        self.users: Dict[int, Dict[str, Any]] = {}
+        self.users_data: Dict[int, Dict[str, Any]] = {}
+        self.users_field_data: Dict[int, Dict[str, Any]] = {}
+        self.taxonomies: Dict[int, Dict[str, Any]] = {}
+        self.files: Dict[int, Dict[str, Any]] = {}
+        self.path_alias: Dict[str, Dict[str, Any]] = {}
+        self.nodes: Dict[int, Dict[str, Any]] = {}
+
+        self._load_users()
+        self._load_taxonomies()
+        self._load_files()
+        self._load_path_alias()
+        self._load_nodes()
+
+        self.cur.close()
+        self.conn.close()
+
+    # --------------------------------------------------------------------- #
+    # User tables (hard-coded)
+    # --------------------------------------------------------------------- #
+    def _load_users(self) -> None:
+        """Load users, users_data, users_field_data, and user__roles."""
+        self.cur.execute("SELECT * FROM users")
+        for row in self.cur.fetchall():
+            uid = row["uid"]
+            self.users[uid] = row
+            self.users[uid]["roles"] = []
+
+        self.cur.execute("SELECT * FROM users_data")
+        for row in self.cur.fetchall():
+            uid = row["uid"]
+            if uid not in self.users_data:
+                self.users_data[uid] = {}
+            self.users_data[uid][row["name"]] = row
+
+        self.cur.execute("SELECT * FROM users_field_data")
+        for row in self.cur.fetchall():
+            uid = row["uid"]
+            self.users_field_data[uid] = row
+
+        # user__roles
+        self.cur.execute("SHOW TABLES LIKE 'user__roles'")
+        if self.cur.fetchone():
+            self.cur.execute("SELECT * FROM user__roles WHERE deleted = 0")
+            for row in self.cur.fetchall():
+                uid = row["entity_id"]
+                if uid in self.users:
+                    self.users[uid]["roles"].append(row["roles_target_id"])
+
+    # --------------------------------------------------------------------- #
+    # Taxonomy
+    # --------------------------------------------------------------------- #
+    def _load_taxonomies(self) -> None:
+        """Load taxonomy_term_data + parent + field_data."""
+        self.cur.execute("SELECT * FROM taxonomy_term_data")
+        for row in self.cur.fetchall():
+            tid = row["tid"]
+            self.taxonomies[tid] = row
+
+        # parent
+        self.cur.execute("SHOW TABLES LIKE 'taxonomy_term__parent'")
+        if self.cur.fetchone():
+            self.cur.execute(
+                "SELECT entity_id, parent_target_id FROM taxonomy_term__parent WHERE deleted = 0"
+            )
+            for row in self.cur.fetchall():
+                tid = row["entity_id"]
+                if tid in self.taxonomies:
+                    self.taxonomies[tid]["parent"] = row["parent_target_id"]
+
+        # field_data
+        self.cur.execute("SELECT * FROM taxonomy_term_field_data")
+        for row in self.cur.fetchall():
+            tid = row["tid"]
+            if tid in self.taxonomies:
+                self.taxonomies[tid]["field_data"] = row
+
+    # --------------------------------------------------------------------- #
+    # Files
+    # --------------------------------------------------------------------- #
+    def _load_files(self) -> None:
+        """Load file_managed and file_metadata."""
+        self.cur.execute("SELECT * FROM file_managed")
+        for row in self.cur.fetchall():
+            fid = row["fid"]
+            self.files[fid] = row
+
+        self.cur.execute("SHOW TABLES LIKE 'file_metadata'")
+        if self.cur.fetchone():
+            self.cur.execute("SELECT * FROM file_metadata")
+            for row in self.cur.fetchall():
+                fid = row["fid"]
+                if fid in self.files:
+                    if "metadata" not in self.files[fid]:
+                        self.files[fid]["metadata"] = {}
+                    self.files[fid]["metadata"][row["name"]] = row["value"]
+
+    # --------------------------------------------------------------------- #
+    # Path alias
+    # --------------------------------------------------------------------- #
+    def _load_path_alias(self) -> None:
+        """Load all path aliases."""
+        self.cur.execute("SELECT * FROM path_alias")
+        for row in self.cur.fetchall():
+            self.path_alias[row["alias"]] = row
+
+    # --------------------------------------------------------------------- #
+    # Nodes
+    # --------------------------------------------------------------------- #
+    def _load_nodes(self) -> None:
+        """Load all nodes with full field data."""
+        # Base node + field_data
+        self.cur.execute("""
+            SELECT n.*, nfd.*
+            FROM node n
+            JOIN node_field_data nfd ON n.nid = nfd.nid AND n.vid = nfd.vid
+            WHERE n.type IN ('page', 'article', 'installation', 'kit') AND nfd.status = 1
+            ORDER BY n.type, nfd.title
+        """)
+        for row in self.cur.fetchall():
+            nid = row["nid"]
+            meta = {
+                "nid": nid,
+                "vid": row["vid"],
+                "type": row["type"],
+                "uuid": row["uuid"],
+                "langcode": row["langcode"],
+                "data": {k: v for k, v in row.items() if k in [
+                    "title", "uid", "status", "created", "changed"
+                ]},
+                "fields": {},
+                "taxonomies": {},
+                "children": [],
+                "parents": [],
+            }
+            self.nodes[nid] = meta
+
+        # Custom fields
+        self.cur.execute("SHOW TABLES LIKE 'node__field_%'")
+        field_tables_result = self.cur.fetchall()
+        field_tables = [list(row.values())[0] for row in field_tables_result]
+
+        for tbl in field_tables:
+            print(f"\n\ntbl: {tbl}")
+            field_name = tbl.replace("node__", "")
+            self.cur.execute(f"SHOW COLUMNS FROM `{tbl}`")
+            cols = [c["Field"] for c in self.cur.fetchall()]
+
+            self.cur.execute(f"SELECT * FROM `{tbl}` WHERE deleted = 0")
+            for row in self.cur.fetchall():
+                nid = row["entity_id"]
+                if nid not in self.nodes:
+                    logger.warning(f"No parent node nid={nid} for {row}")
+                    continue
+
+                if field_name not in self.nodes[nid]["fields"]:
+                    self.nodes[nid]["fields"][field_name] = []
+
+                field_row = {}
+                for col in cols:
+                    if col.startswith(f"{field_name}_"):
+                        clean_key = col.replace(f"{field_name}_", "")
+                        field_row[clean_key] = row[col]
+                field_row["delta"] = row["delta"]
+
+                # Link file: field_name_target_id -> file_managed.fid
+                if "target_id" in field_row:
+                    fid = field_row["target_id"]
+                    if fid in self.files:
+                        field_row["file"] = self.files[fid]
+                        file_uid = field_row["file"]["uid"]
+                        print(f'field_row["file"]["uid"] = {file_uid}')
+                        if file_uid in self.users:
+                            field_row["file"]["user"] = self.users[file_uid]
+                        else:
+                            logger.warning(f"File uid={file_uid} not found in users")
+
+                self.nodes[nid]["fields"][field_name].append(field_row)
+
+        # Taxonomy index
+        self.cur.execute("SELECT * FROM taxonomy_index")
+        for row in self.cur.fetchall():
+            nid = row["nid"]
+            tid = row["tid"]
+            if nid in self.nodes and tid in self.taxonomies:
+                term = self.taxonomies[tid]
+                name = term["field_data"]["name"] if "field_data" in term else str(tid)
+                self.nodes[nid]["taxonomies"][name.lower().replace(" ", "_")] = term
+
+        # URL alias
+        for nid, meta in self.nodes.items():
+            path = f"/node/{nid}"
+            for alias, row in self.path_alias.items():
+                if row["path"] == path:
+                    meta["url"] = alias
+                    break
+            else:
+                meta["url"] = path
+
+        # Children & parents
+        for nid, meta in self.nodes.items():
+            # Children: any field referencing another node
+            for field_name, items in meta["fields"].items():
+                for item in items:
+                    if "target_id" in item:
+                        target_id = item["target_id"]
+                        if target_id in self.nodes:
+                            self.nodes[target_id]["parents"].append({
+                                "nid": nid,
+                                "title": meta["data"]["title"],
+                                "via": "entity_reference",
+                                "field": field_name
+                            })
+                            meta["children"].append({
+                                "nid": target_id,
+                                "title": self.nodes[target_id]["data"]["title"],
+                                "type": self.nodes[target_id]["type"],
+                                "field": field_name
+                            })
+
+    def export_json(self, path: str) -> None:
+        """Export full state to JSON."""
+        data = {
+            "users": self.users,
+            "users_data": self.users_data,
+            "users_field_data": self.users_field_data,
+            "taxonomies": self.taxonomies,
+            "files": self.files,
+            "path_alias": self.path_alias,
+            "nodes": self.nodes,
+        }
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2, default=str)
 
 
 def export_nodes(db: str, user: str, password: str, host: str = "localhost") -> List[Dict[str, Any]]:
-    """Export all published pages and articles from Drupal 9.
+    """Export nodes with full state.
 
     Args:
         db: Database name.
         user: Database username.
         password: Database password.
-        host: MySQL host (default: localhost).
+        host: MySQL host.
 
     Returns:
-        List of dictionaries, each representing a node with metadata,
-        fields, children, and parents.
+        List of node metadata.
     """
-    conn = mysql.connector.connect(host=host, database=db, user=user, password=password)
-    cur = conn.cursor()
-
-    # Discover field tables
-    cur.execute("SHOW TABLES LIKE 'node__field_%'")
-    field_tables = [
-        t[0] for t in cur.fetchall()
-        if not any(b in t[0] for b in BLACKLIST)
-    ]
-
-    # Map bundles to tables
-    bundle_tables = {}
-    for tbl in field_tables:
-        cur.execute(f"SELECT DISTINCT bundle FROM `{tbl}` WHERE deleted = 0")
-        bundle_tables[tbl] = [r[0] for r in cur.fetchall()]
-
-    # Fetch nodes
-    cur.execute("""
-        SELECT n.nid, n.vid, n.type, nfd.title, nfd.langcode
-        FROM node n
-        JOIN node_field_data nfd ON n.nid = nfd.nid AND n.vid = nfd.vid
-        WHERE n.type IN ('page', 'article') AND nfd.status = 1
-        ORDER BY n.type, nfd.title
-    """)
-    nodes = cur.fetchall()
-
-    results = []
-    for nid, vid, ctype, title, lang in nodes:
-        meta = {
-            "nid": nid,
-            "vid": vid,
-            "type": ctype,
-            "title": title,
-            "langcode": lang,
-            "url": _url_alias(cur, nid),
-            "categories": _taxonomy_terms(cur, nid),
-            "fields": _node_fields(cur, nid, vid, ctype, field_tables, bundle_tables),
-            "children": _children(cur, nid),
-            "parents": _parents(cur, nid),
-        }
-        results.append(meta)
-        print(json.dumps(meta, indent=2))
-
-    cur.close()
-    conn.close()
-    return results
-
-
-def _url_alias(cur, nid: int) -> str:
-    """Get URL alias for a node.
-
-    Args:
-        cur: Active database cursor.
-        nid: Node ID.
-
-    Returns:
-        URL alias string or /node/{nid} if not found.
-    """
-    cur.execute(
-        "SELECT alias FROM path_alias WHERE path = CONCAT('/node/', %s) ORDER BY id DESC LIMIT 1",
-        (nid,),
-    )
-    row = cur.fetchone()
-    return row[0] if row else f"/node/{nid}"
-
-
-def _taxonomy_terms(cur, nid: int) -> List[str]:
-    """Get taxonomy term names for a node.
-
-    Args:
-        cur: Active database cursor.
-        nid: Node ID.
-
-    Returns:
-        List of term names.
-    """
-    cur.execute(
-        """
-        SELECT DISTINCT t.name
-        FROM taxonomy_index ti
-        JOIN taxonomy_term_field_data t ON ti.tid = t.tid
-        WHERE ti.nid = %s AND t.langcode = 'en'
-        """,
-        (nid,),
-    )
-    return [r[0] for r in cur.fetchall()]
-
-
-def _node_fields(cur, nid: int, vid: int, bundle: str,
-                 field_tables: List[str], bundle_tables: dict) -> Dict[str, Any]:
-    """Extract all field values for a node.
-
-    Args:
-        cur: Active database cursor.
-        nid: Node ID.
-        vid: Revision ID.
-        bundle: Content type (e.g. 'page').
-        field_tables: List of node__field_* tables.
-        bundle_tables: Mapping of table to bundles.
-
-    Returns:
-        Dictionary of field_name -> value(s).
-    """
-    fields = {}
-    for tbl in field_tables:
-        if bundle not in bundle_tables.get(tbl, []):
-            continue
-
-        # Find value and target columns
-        cur.execute(f"SHOW COLUMNS FROM `{tbl}` WHERE Field LIKE '%_value'")
-        value_cols = [r[0] for r in cur.fetchall()]
-        cur.execute(f"SHOW COLUMNS FROM `{tbl}` WHERE Field LIKE '%_target_id'")
-        target_cols = [r[0] for r in cur.fetchall()]
-        cols = value_cols + target_cols
-
-        if not cols:
-            continue
-
-        cur.execute(
-            f"SELECT {', '.join(cols)} FROM `{tbl}` WHERE entity_id = %s AND revision_id = %s AND deleted = 0",
-            (nid, vid),
-        )
-        rows = cur.fetchall()
-        if not rows:
-            continue
-
-        field_name = tbl.replace("node__", "")
-        data = []
-        for row in rows:
-            d = {}
-            for col, val in zip(cols, row):
-                clean = col.replace(f"{field_name}_", "")
-                d[clean] = val
-            data.append(d)
-        fields[field_name] = data[0] if len(data) == 1 else data
-    return fields
-
-
-def _children(cur, nid: int) -> List[Dict[str, Any]]:
-    """Find paragraph children of a node.
-
-    Args:
-        cur: Active database cursor.
-        nid: Node ID.
-
-    Returns:
-        List of child paragraph metadata.
-    """
-    cur.execute("SHOW TABLES LIKE 'node__field_%'")
-    candidate_tables = [
-        t[0] for t in cur.fetchall()
-        if any(keyword in t[0] for keyword in ["paragraph", "content", "block", "section", "component"])
-    ]
-
-    children = []
-    for tbl in candidate_tables:
-        field = tbl.replace("node__", "")
-        cur.execute(f"SHOW COLUMNS FROM `{tbl}` LIKE %s", (f"{field}_target_id",))
-        if not cur.fetchone():
-            continue
-
-        cur.execute(
-            f"SELECT {field}_target_id, delta FROM `{tbl}` WHERE entity_id = %s AND deleted = 0 ORDER BY delta",
-            (nid,),
-        )
-        for pid, delta in cur.fetchall():
-            cur.execute("SELECT type FROM paragraphs_item WHERE id = %s", (pid,))
-            ptype = cur.fetchone()
-            if ptype:
-                children.append({
-                    "paragraph_id": pid,
-                    "type": ptype[0],
-                    "delta": delta,
-                    "field": field
-                })
-    return children
-
-
-def _parents(cur, nid: int) -> List[Dict[str, Any]]:
-    """Find parent nodes that reference this paragraph.
-
-    Args:
-        cur: Active database cursor.
-        nid: Paragraph ID.
-
-    Returns:
-        List of parent node metadata.
-    """
-    cur.execute("""
-        SELECT DISTINCT pfd.parent_id, pfd.parent_type, pfd.parent_field_name
-        FROM paragraphs_item_field_data pfd
-        WHERE pfd.id = %s
-    """, (nid,))
-    parents = cur.fetchall()
-
-    results = []
-    for parent_id, parent_type, field_name in parents:
-        if parent_type != "node":
-            continue
-        try:
-            parent_nid = int(parent_id)
-        except (ValueError, TypeError):
-            continue
-
-        cur.execute("""
-            SELECT nfd.title
-            FROM node_field_data nfd
-            WHERE nfd.nid = %s AND nfd.langcode = 'en'
-        """, (parent_nid,))
-        title_row = cur.fetchone()
-        if title_row:
-            results.append({
-                "nid": parent_nid,
-                "title": title_row[0],
-                "field": field_name
-            })
-    return results
+    state = DrupalState(db, user, password, host)
+    state.export_json("drupal_export.json")
+    return list(state.nodes.values())
 
 
 def main() -> int:
-    """Interactive entry point for drupal-export.py."""
-    settings = _load_settings()
+    """Interactive entry point."""
+    settings = {}
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE) as f:
+            settings = json.load(f)
 
     db = settings.get("database") or input("Database name: ").strip()
     user = settings.get("user") or input("Username: ").strip()
@@ -294,12 +310,16 @@ def main() -> int:
     else:
         save_pwd = True
 
-    _save_settings(db, user, pwd if save_pwd else None)
+    data = {"database": db, "user": user}
+    if save_pwd:
+        data["password"] = pwd
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
 
     print("\nExporting...")
     export_nodes(db=db, user=user, password=pwd)
-    print("\nDone.")
+    print("\nDone. See drupal_export.json")
     return 0
 
 
-__all__ = ["export_nodes", "main"]
+__all__ = ["DrupalState", "export_nodes", "main"]

@@ -225,3 +225,247 @@ CREATE TABLE `paragraphs_item_revision_field_data` (   `id` int unsigned NOT NUL
 ```
 
 Use Google-style sphinx docstrings, and never use the → symbol.
+
+- 2025-11-07
+
+I am still getting only fragments, like:
+```
+{
+  "nid": 2272,
+  "vid": 9997,
+  "type": "page",
+  "title": "TCS' \"Mini-Throttle\" - UWT-50",
+  "langcode": "en",
+  "url": "/mini-throttle",
+  "categories": [],
+  "fields": {},
+  "children": [],
+  "parents": [
+    {
+      "nid": 1243,
+      "title": "Bachmann Spectrum USRA Light 4-8-2 Mountain Locomotive",
+      "via": "entity_reference",
+      "field": "field_installation_pictures"
+    }
+  ]
+}
+```
+Lets look at how a whole page should be collected into meta, using an example:
+```
+
+INSERT INTO `node` VALUES ('1855','10469','installation','aea39449-51f8-4d25-af1d-079899be05a1','en'),...
+
+backup-2025-11-05T17-25-10.mysql:7078: INSERT INTO `node__field_installation_pictures` VALUES ('installation','0','1854','4945','en','8','6170','A view of the motherboard properly wired. ','','3088','1545'),('installation','0','1854','4945','en','9','6172','Using a small amount of hot melt glue, mount the 28mm speaker to the rear speaker platform and solder the wire leads to the motherboard. NOTE: You must be very careful to avoid getting glue on the speaker cone. Glue on the speaker will ultimately cause it to produce no sound and fail. ','','2200','1530'),('installation','0','1854','4945','en','10','6173','Solder the front LED to the AK-MB1. TCS motherboards include on board current limit resistors for LED use. There is no need to apply external resistors for LED use. You can now plug in your WOW121 decoder.\r\n\r\nLastly, in order to keep the wires neat and prevent possible shorts, lace the wires into a bundle using lacing cord, which is a wax impregnated string \r\nused for wire bundling and making harne
+backup-2025-11-05T17-25-10.mysql:7079: INSERT INTO `node__field_installation_pictures` VALUES ('installation','0','1855','10469','en','2','6178','The Bachmann F7A shown with the shell off. Remove the two screws highlighted above as well as the wires from the original lighting board and remove it from the chassis.','','3292','1149'),('installation','0','1855','10469','en','3','6179','With the lighting board removed, remove the two screws and the small plastic platform as highlighted above. Trim, tin or lengthen the wire leads as needed and using small lengths of TCS 3/32" and 3/64" shrink tubing, insulate these solder leads.','','3328','1806'),('installation','0','1855','10469','en','4','6180','Clip the 3 caps and the two other components highlighted and remove them from the motor. These will not be needed with this installation. Replace the motor wires with new leads. ','','1910','1433'),('installation','0','1855','10469','en','5','6184','Shown with the caps properly removed. Next, remove the two screws holdi
+backup-2025-11-05T17-25-10.mysql:7221: INSERT INTO `node__field_kit` VALUES ...,('installation','0','1855','10469','en','0','2421'),...  # last field is field_kit_target_id
+backup-2025-11-05T17-25-10.mysql:7288: INSERT INTO `node__field_locomotive_brand` VALUES ...,('installation','0','1855','10469','en','0','25'),...
+backup-2025-11-05T17-25-10.mysql:7563: INSERT INTO `node__field_product_notes` VALUES ...,('installation','0','1855','10469','en','0','941'),('installation','0','1855','10469','en','1','1033'),('installation','0','1858','5724','en','0','941'),('installation','0','1858','5724','en','1','1033'),('installation','0','1862','4987','en','0','941'),('installation','0','1862','4987','en','1','1033'),('installation','0','1863','5526','en','0','941'),('installation','0','1863','5526','en','1','1033'),('installation','0','1867','5067','en','0','941'),('installation','0','1867','5067','en','1','1033'),('installation','0','1875','5268','en','0','941'),('installation','0','1875','5268','en','1','1033'),('installation','0','1876',
+backup-2025-11-05T17-25-10.mysql:7607: INSERT INTO `node__field_requires_milling` VALUES ('installation','0','668','10476','en','0','0'),('installation','0','1034','9851','en','0','0'),('installation','0','1035','10458','en','0','0'),('installation','0','1188','9868','en','0','0'),('installation','0','1356','9852','en','0','0'),('installation','0','1392','9774','en','0','0'),('installation','0','1416','10482','en','0','0'),('installation','0','1424','9765','en','0','1'),('installation','0','1573','9781','en','0','0'),('installation','0','1617','9863','en','0','0'),('installation','0','1626','10470','en','0','0'),('installation','0','1635','10480','en','0','0'),('installation','0','1636','10481','en','0','0'),('installation','0','1855','10469','en','0','0'),...
+backup-2025-11-05T17-25-10.mysql:7648: INSERT INTO `node__field_scale` VALUES ('decoder','0','1799','9122','en','0','7'),('decoder','0','1799','9122','en','1','6'),('decoder','0','1800','10166','en','0','7'),('decoder','0','1800','10166','en','1','6'),('decoder','0','1801','9121','en','0','7'),('decoder','0','1801','9121','en','1','6'),('decoder','0','1802','9066','en','0','4'),('decoder','0','1803','9073','en','0','4'),('decoder','0','1804','9072','en','0','4'),('decoder','0','1805','9071','en','0','4'),('decoder','0','1806','9081','en','0','6'),('installation','0','1814','4806','en','0','7'),('installation','0','1846','9722','en','0','7'),('installation','0','1847','8314','en','0','7'),('installation','0','1848','5607','en','0','7'),('keep_alive','0','1850','9785','en','0','7'),('keep_alive','0','1850','9785','en','1','6'),('installation','0','1851','6497','en','0','7'),('installation','0','1852','4933','en','0','7'),('installation','0','1853','4938','en','0','7'),('installation','0','1854','4945','en','0',
+backup-2025-11-05T17-25-10.mysql:7956: INSERT INTO `node__field_wowsound_product` VALUES ...,('installation','0','1855','10469','en','0','1'),...
+Found 114 matches for "'installation','0','1855'".
+
+INSERT INTO `file_managed` VALUES ('5743','64c1f4e9-8b75-466c-9a53-3f210d63cf62','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_1.jpg','image/jpeg','51576','1','1523285567','1523293662','image'),('5744','a0407c57-fed9-4a55-8933-1244e84d347e','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_2.jpg','image/jpeg','50275','1','1523285617','1523293662','image'),('5745','ca16c332-fc67-478d-bddb-7ceaf21ed584','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_3.jpg','image/jpeg','50275','1','1523285671','1523293662','image'),('5746','c361de1a-3efa-42b8-8600-82cb34e958ea','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_4.jpg','image/jpeg','50275','1','1523285700','1523293662','image'),('5747','e99417b8-f996-45a6-a1c6-327dbc456684','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_5.jpg','image/jpeg','50275','1','1523285730','1523293662','image'),('5748','fc200f2e-e0f5-4d77-8df9-55bc8c595215','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_6.jpg','image/jpeg','50275','1','1523285757','1523293662','image'),('5751','dd5f485a-2054-46d4-b71b-21841c107b5f','en','54','ALD4 Diagram.jpg','public://2018-04/ALD4 Diagram_0.jpg','image/jpeg','658064','1','1523390563','1523400924','image'),('5752','b86c302a-fa2a-4a22-8722-331b8a49c7f5','en','54','AMD4 Diagram.jpg','public://2018-04/AMD4 Diagram.jpg','image/jpeg','658064','1','1523390592','1523400924','image'),('5753','f59a8e28-537d-4ddb-8535-f5ebfacfdb40','en','54','ASD4 Diagram.jpg','public://2018-04/ASD4 Diagram.jpg','image/jpeg','658064','1','1523390609','1523400924','image'),('5754','10e4c323-71ef-4de2-904a-c6416aa5c7b2','en','54','AZL4 Digram.jpg','public://2018-04/AZL4 Digram.jpg','image/jpeg','222268','1','1523390626','1523400924','image'),('5755','b50433b6-b37c-4295-8d7a-acb4987741b6','en','54','CN Diagram.jpg','public://2018-04/CN Diagram.jpg','image/jpeg','177766','1','1523390640','1523400924','image'),('5756','66fe4344-347d-445e-a3c7-d62f5b85f33d','en','54','CN-GP Diagram.jpg','public://2018-04/CN-GP Diagram.jpg','image/jpeg','1010928','1','1523390649','1523400924','image');
+
+
+INSERT INTO `file_managed` VALUES ('5743','64c1f4e9-8b75-466c-9a53-3f210d63cf62','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_1.jpg','image/jpeg','51576','1','1523285567','1523293662','image'),('5744','a0407c57-fed9-4a55-8933-1244e84d347e','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_2.jpg','image/jpeg','50275','1','1523285617','1523293662','image'),('5745','ca16c332-fc67-478d-bddb-7ceaf21ed584','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_3.jpg','image/jpeg','50275','1','1523285671','1523293662','image'),('5746','c361de1a-3efa-42b8-8600-82cb34e958ea','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_4.jpg','image/jpeg','50275','1','1523285700','1523293662','image'),('5747','e99417b8-f996-45a6-a1c6-327dbc456684','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_5.jpg','image/jpeg','50275','1','1523285730','1523293662','image'),('5748','fc200f2e-e0f5-4d77-8df9-55bc8c595215','en','54','Image Coming Soon.jpg','public://default_images/Image Coming Soon_6.jpg','image/jpeg','50275','1','1523285757','1523293662','image'),('5751','dd5f485a-2054-46d4-b71b-21841c107b5f','en','54','ALD4 Diagram.jpg','public://2018-04/ALD4 Diagram_0.jpg','image/jpeg','658064','1','1523390563','1523400924','image'),('5752','b86c302a-fa2a-4a22-8722-331b8a49c7f5','en','54','AMD4 Diagram.jpg','public://2018-04/AMD4 Diagram.jpg','image/jpeg','658064','1','1523390592','1523400924','image'),('5753','f59a8e28-537d-4ddb-8535-f5ebfacfdb40','en','54','ASD4 Diagram.jpg','public://2018-04/ASD4 Diagram.jpg','image/jpeg','658064','1','1523390609','1523400924','image'),('5754','10e4c323-71ef-4de2-904a-c6416aa5c7b2','en','54','AZL4 Digram.jpg','public://2018-04/AZL4 Digram.jpg','image/jpeg','222268','1','1523390626','1523400924','image'),('5755','b50433b6-b37c-4295-8d7a-acb4987741b6','en','54','CN Diagram.jpg','public://2018-04/CN Diagram.jpg','image/jpeg','177766','1','1523390640','1523400924','image'),('5756','66fe4344-347d-445e-a3c7-d62f5b85f33d','en','54','CN-GP Diagram.jpg','public://2018-04/CN-GP Diagram.jpg','image/jpeg','1010928','1','1523390649','1523400924','image');
+
+INSERT INTO `file_managed` VALUES ('6172','b29d11fe-ca9e-41c5-8c64-5bf1740b57da','en','98','speaker install.jpg','public://2018-06/speaker install_1.jpg','image/jpeg','553114','1','1528733433','1528735660','image'),('6173','188c8ba1-3e57-4244-83c9-a48c676acac6','en','98','laced.jpg','public://2018-06/laced_3.jpg','image/jpeg','646210','1','1528733444','1528735660','image'),('6174','a0a048c2-5064-49f4-89ad-be4fa3489ead','en','98','caps removed speaker cover removal.jpg','public://2018-06/caps removed speaker cover removal_0.jpg','image/jpeg','774670','1','1528734752','1528735660','image'),('6175','0a512fbd-4a2f-4d5e-9008-e8b8247200be','en','98','shell removal scews.jpg','public://2018-06/shell removal scews_0.jpg','image/jpeg','420162','1','1528734773','1528735660','image'),('6176','25671b82-2cff-4925-af55-45a5606fcd19','en','98','shell on.jpg','public://2018-06/shell on_3.jpg','image/jpeg','750970','1','1528744690','1528746477','image'),('6177','cf7856e0-f666-498d-bf5b-471477ddaa68','en','98','shell removal.jpg','public://2018-06/shell removal_0.jpg','image/jpeg','612853','1','1528744705','1528746477','image'),('6178','726feb29-1e31-4270-885c-b934c03e2900','en','98','shell off.jpg','public://2018-06/shell off_1.jpg','image/jpeg','624042','1','1528744715','1528746477','image'),('6179','62f51cd7-370d-494c-8875-32a8271e09b9','en','98','lighting board removed.jpg','public://2018-06/lighting board removed_2.jpg','image/jpeg','785507','1','1528744728','1528746477','image'),('6180','6590d3ed-cad1-4325-9acc-bc983aed11ea','en','98','cap removal.jpg','public://2018-06/cap removal_0.jpg','image/jpeg','502710','1','1528744748','1528746477','image'),('6181','de2538d5-a679-464d-8ef4-afa2a7ad65a0','en','98','motherboard mount 1.jpg','public://2018-06/motherboard mount 1.jpg','image/jpeg','508203','1','1528744774','1528746477','image'),('6182','ed832d0b-3286-4a9f-a860-0b81ffb7c00c','en','98','motherboard mount 2.jpg','public://2018-06/motherboard mount 2.jpg','image/jpeg','490739','1','1528744780','1528746477','image'),('6183','d7cce83b-49a3-49b5-b62d-9f5e9aae7ce3','en','98','motherboard solder.jpg','public://2018-06/motherboard solder_3.jpg','image/jpeg','962324','1','1528744793','1528746477','image');
+
+INSERT INTO `users` VALUES ...,('98','37d5481c-20c7-4a5f-ad69-74ae3394c421','en'),...  # uid, uuid, langcode
+INSERT INTO `users_data` VALUES ...,('98','contact','enabled','1','0'),('105','contact','enabled','0','0'),...
+
+INSERT INTO `users_field_data` VALUES ...,('98','en','en','en','johndoe','$S$EDLZ6vcamWd0eJSS2Kj.vGetTyX1EUImqrm9rENwk78829atort1',null,'America/New_York','1','1523975720','1598471242','1573262234','1573261973',null,'1'),...
+
+INSERT INTO `node` VALUES ('2421','10468','kit','48fa087b-67a8-4c95-9d6d-c3b689de554a','en')
+
+INSERT INTO `path_alias` VALUES ...('6816','6816','259f5092-5f92-4f65-a3ad-b8cdf545c7e6','en','/node/2421','/1791-0','1'),...
+
+path_alias_row = {
+  'id':6816,
+  'path':"/node/2421",
+  'alias':"/1791-0",
+  #  and all other columns in path_alias table for row
+}
+path_alias[path_alias_row['alias']] = path_alias_row
+
+backup-2025-11-05T17-25-10.mysql:2740: INSERT INTO `file_managed` VALUES ...,('1855','edec49bf-c919-4e1c-bd73-737fb5e35860','en','1','DSC_0025.JPG','public://2018-03/DSC_0025.JPG','image/jpeg','927519','1','1
+backup-2025-11-05T17-25-10.mysql:3392: INSERT INTO `file_metadata` VALUES ...,('1855','height','i:773;'),('1855','width','i:1144;'),...
+backup-2025-11-05T17-25-10.mysql:3866: INSERT INTO `file_usage` VALUES ...,('1855','file','node','1196','3'),...
+backup-2025-11-05T17-25-10.mysql:5581: INSERT INTO `node` VALUES ...,('1855','10469','installation','aea39449-51f8-4d25-af1d-079899be05a1','en'),...
+backup-2025-11-05T17-25-10.mysql:8192: INSERT INTO `node_field_data` VALUES ...,('1855','10469','installation','en','1','Bachmann F7A','98','1528744624','1733257277','0','0','1','1',null),...
+
+# taxonomy_index column names: nid, tid, status, sticky, created (mysql timestamp)
+backup-2025-11-05T17-25-10.mysql:27894: INSERT INTO `taxonomy_index` VALUES ...,('1855','7','1','0','1528744624'),...
+backup-2025-11-05T17-25-10.mysql:27909: INSERT INTO `taxonomy_index` VALUES ...,('1855','25','1','0','1528744624'),...
+Found 19 matches for "('1855'".
+
+# taxonomy_term__parent column names: bundle (text), deleted (int), entity_id (corresponds to tid in taxonomy_term_data), 
+
+```
+Note that node_field_data is a separate Drupal-generated table we must hard code, as it has a single underscore (does not start with node___field_*, so it is not a custom field). We get only one matching entry from that table, comparing its nid to the nid of the node (1-1 relationship).
+
+path_alias table name should also be hard-coded so it can be iterated, and the data can be stored in `self.path_alias`. Like user tables, path_alias table should be fully iterated and stored in the class before iterating nodes and doesn't need to be looked up (but may be used by a CMS-specific export feature later).
+
+Collect 3 2-level nested dictionaries, users, users_data, and users_field_data before iterating nodes, so a custom exporter can look them up by dictionary key (make key uid so uid of node can be used).For each row, also set a blank list for use later: user['roles'] = [].
+
+Then iterate the user__roles table. Set user__roles_row = {} then convert each matching row into the dict as follows: For each field use column name as key and value as value, then store the row as follows: `self.users[user__roles_row['entity_id']]['roles'].append(user__roles_row)`.
+
+Collect a self.taxonomies dictionary by iterating the taxonomy_term_data table manually. Use each column name as the taxonomies_term_data_row dictionary's key, then store self.taxonomies[taxonomies_term_data_row['tid']] = taxonomies_term_data_row. Look up the matching row (1-1 relationship) in taxonomies_term__parent where that table's entity_id matches taxonomies_term_data_row['tid'], and set taxonomies_term_data_row['parent'] = taxonomies_term__parent_row['parent_target_id']. Look up the matching row (1-1 relationship) in the taxonomy_term_field_data table by that table's tid matching taxonomies_term_data_row['tid'], and use each column name as a key and each value as the value, then set taxonomies_term_data_row['field_data'] = taxonomy_term_field_data_row.
+
+Store the nodes, users, etc as members of class DrupalState, and move all functions we've made to make them members of the class.
+
+Each node row should become something like (plus any other dependent data, and by that I mean installation_pictures is just an example but we need every match from each node__field_* table. Get every row in such a table where entity_id of the row matches uid of the parent node, 1855 in the example). Be sure to collect every column in the custom field table that starts with the custom field name, such as every field_installation_pictures_width and field_installation_pictures_width and other field_installation_pictures_* in the node__field_installation_pictures table in the example:
+```
+# example user info (The 3 user table names must be hard-coded and iterated manually, for later use by CMS-specific export code):
+users_row = {
+  'uid': 98
+  'uuid': '37d5481c-20c7-4a5f-ad69-74ae3394c421',
+  'langcode: 'en'
+}
+users[int(users_row['uid'])] = users_row
+users_data_row = {
+  'uid': 98,
+  'module': "contact",
+  'name': "enabled",
+  # ... and all other columns in the users_data table (for the matching row)
+}
+users_data[users_data_row['uid']] = users_data_row
+users_field_data_row = {
+  'uid': 98,
+  'mail': None,
+  'pass': "$S$EDLZ6vcamWd0eJSS2Kj.vGetTyX1EUImqrm9rENwk78829atort1",
+  # ... and all other columns in the users_field_data table (for the matching row)
+}
+users_field_data[users_field_data_row['uid']] = users_field_data_row
+
+# example child (collect in parallel--a CMS-specific exporter will have to figure out to link it. No special code, just iterate nodes as normal):
+
+meta = {
+  'nid': 2421,
+  'vid': 10468,
+  'type':	"kit",
+  'uuid':	"48fa087b-67a8-4c95-9d6d-c3b689de554a",
+  'langcode': "en",
+}
+
+
+meta = {
+  'nid': 1855,
+  'vid': 10469,
+  'type': "installation",
+  'uid': "aea39449-51f8-4d25-af1d-079899be05a1",
+  'langcode': "en",
+  'data': {  # from node_field_data table row matching nid of node
+    'nid': 1855,
+    'vid': 10469,
+    'type': "installation",
+    'langcode': "en",
+    'status': 1,
+    'title': "Bachmann F7A",
+    'uid': 98,
+    #... and all other fields should also be saved.
+  }
+  'kit': {
+    'target_id': 2421,
+  }
+  'installation_pictures': [
+    {
+      'file': {
+        'path', "medium/public/default_images/Image%20Coming%20Soon_2.jpg",
+        'user': {
+          'uid': "37d5481c-20c7-4a5f-ad69-74ae3394c421",  # column uuid of users, where uid matches uid in file_managed row
+        }
+      }
+    },
+    {
+      'file': {
+        'path': "installations_full_size/public/2018-06/shell%20on_3.jpg",
+         # ...
+      }
+    }
+  ],
+  # ... other node__field_* tables (each entry where entity_id is same as node's uid)
+}
+
+# After getting the complete node, we must process each row of taxonomy_index where nid matches nid of the node. Since taxonomy_index is merely a linkage table, the tid of that table must be used to look up the information in. Example corresponding to the SQL example data provided:
+meta['taxonomies'] = {}
+meta['taxonomies']['scale'] = {
+    'scale': "HO Scale",
+},
+
+
+# example child node, stored parallel, no fancy linkage just found when iterating nodes as usual (an export script will figure out how to link target_id in the different CMS):
+{
+  'nid': 2421,
+  'vid': 10468,
+  'type': "kit",
+  'uuid': "48fa087b-67a8-4c95-9d6d-c3b689de554a",
+  'langcode': "en",
+}
+
+```
+
+
+It still has KeyError. Maybe this will help. I added print(repr(field_tables_result)) before it crashes so we can gather more information:
+
+```
+Exporting...
+[{'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_12v_outputs'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_1_5v_bulb_outputs'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_accessories'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_accessories_literature'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_address'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_audio_assist'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_audio_assist_guide'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_barcode_image'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_barcode_number'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_branding_imge'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_category'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_city'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_color'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_communication_protocol_s_'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_communication_type_s_'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_compatibility'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_connector'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_continuous_peak'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_cormp_'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_country'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_current_fi'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_current_rating'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_cv_id'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_cv_set_description'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_cv_set_id'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_date_added'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_dc_impedance'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_dealer_or_distributer'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_dealer_type'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_decoder'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_decoder_interface'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_decoder_literature'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_decoder_tester'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_decoder_variants'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_0'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_1'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_2'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_3'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_4'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_5'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_6'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_default_value_bit_7'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_0'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_1'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_2'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_3'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_4'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_5'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_6'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bit_7'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_description_bullet'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_dimensions'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_display'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_effective_frequency_band'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_electrical_pickup'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_email'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_embedded_pages'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_featured_image'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_file'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_firmware_only'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_function_only'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_function_rating'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_functions'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_gauge'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_harness'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_heat_shrink'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_housing_kit'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_image'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_images'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_includes'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_input_rating'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_installation_performed_by'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_installation_pictures'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_insulation_type'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_interface'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_ka_ready_version'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_ka_wiring_diagram'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_kapton_tape'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_keep_alive'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_keep_alive_literature'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_keyphrase'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_kit'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_kit_compatible'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_led_color'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_led_outputs'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_led_type'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_leds'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_list_of_sounds'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_location_to_display'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_lococompatibility'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_locomotive_brand'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_locomotive_type'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_magic_buy_link'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_max_value'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_menu_item_image'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_min_value'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_motherboard'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_motherboard_literature'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_0'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_1'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_2'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_3'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_4'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_5'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_6'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_name_bit_7'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_node_cv_description'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_node_cvb_description'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_oem_access'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_onboard_leds'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_page_link'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_phone'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_power_rating'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_power_source'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_price'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_print'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_product_description'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_product_image'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_product_model'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_product_notes'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_product_notes_image'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_product_weight'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_programmable_buttons'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_programming_node_id'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_programming_node_id_refere'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_programming_node_id_tag_re'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_programming_node_type'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_programming_nodes'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_programming_tools'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_quick_start_guide'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_region'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_related_views'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_requires_milling'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_resistance_over_1000ft'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_resistors'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_scale'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_series'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_sku'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_software'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_sort_order'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_sound_pressure_level'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_sounds_list'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_speaker_kit'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_speaker_type'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_speedometer'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_state_term'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_sub_decoder_variant'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_supported_languages'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_tcs_address'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_tcs_contact'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_tcs_copyright'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_tcs_logo'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_tcs_tagline'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_technical_notes'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_technical_notes_image'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_temperature_rating'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_terminal_section'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_tools'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_type'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_uk_sales_link'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_uk_specific_notes'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_update_file'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_video_category'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_video_file'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_video_p'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_voltage_regulator'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_warranty'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_warranty_description'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_website'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_weight'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_wiki'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_wire'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_wire_length_gauge'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_wireless_range'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_wiring_diagram'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_wowkit_literature'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_wowsound_product'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_zen_id'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_zen_price'}, {'Tables_in_tcsdcc_drupal (node__field_%)': 'node__field_zip'}]
+Traceback (most recent call last):
+  File "/home/jgustafson/git/druxit/drupal-export.py", line 6, in <module>
+    sys.exit(main())
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 307, in main
+    export_nodes(db=db, user=user, password=pwd)
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 279, in export_nodes
+    state = DrupalState(db, user, password, host)
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 50, in __init__
+    self._load_nodes()
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 180, in _load_nodes
+    field_tables = [row["Tables_in_" + self.conn.database] for row in field_tables_result]
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 180, in <listcomp>
+    field_tables = [row["Tables_in_" + self.conn.database] for row in field_tables_result]
+KeyError: 'Tables_in_tcsdcc_drupal'
+```
+
+
+Lets add
+```
+from logging import getLogger
+if __name__ == "__main__":
+    logger = getLogger(os.path.split(__file__)[1])
+else:
+    logger = getLogger(__name__)
+```
+Lets add some print statements in iterations and nested iterations of discoverable field and table names to show progress to help diagnose issues (any data context a traceback doesn't show): print(f"\n\ntbl: {tbl}"), if nid not in self.nodes: logger.warning(f"No parent node nid={nid} for {row}"). Also print('field_row["file"]["uid"] = {}'.format(field_row["file"]["uid"])).
+
+
+Lets add
+
+from logging import getLogger
+if __name__ == "__main__":
+    logger = getLogger(os.path.split(__file__)[1])
+else:
+    logger = getLogger(__name__)
+
+
+
+Lets add some print statements in iterations and nested iterations of discoverable field and table names to show progress to help diagnose issues (any data context a traceback doesn't show): print(f"\n\ntbl: {tbl}"), if nid not in self.nodes: logger.warning(f"No parent node nid={nid} for {row}"). Also print('field_row["file"]["uid"] = {}'.format(field_row["file"]["uid"])). Result:
+```
+tbl: node__field_installation_pictures
+...
+field_row["file"]["uid"] = 10053
+Traceback (most recent call last):
+  File "/home/jgustafson/git/druxit/drupal-export.py", line 6, in <module>
+    sys.exit(main())
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 313, in main
+    export_nodes(db=db, user=user, password=pwd)
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 285, in export_nodes
+    state = DrupalState(db, user, password, host)
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 55, in __init__
+    self._load_nodes()
+  File "/home/jgustafson/git/druxit/druxit/__init__.py", line 213, in _load_nodes
+    field_row["file"]["user"] = self.files[field_row["file"]["uid"]]
+KeyError: 10053
+```
+Why would you look up the user in files? Correct usage example: tbl: node__field_* {field_name}_target has nothing to do with uid file_managed, {field_name}_target corresponds to fid column of file_managed.
