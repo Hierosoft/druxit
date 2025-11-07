@@ -473,3 +473,115 @@ Why would you look up the user in files? Correct usage example: tbl: node__field
 - 2025-11-07
 
 After processing nodes, lets iterate each row in node__body table, make each row into a dictionary node__body_row where key is column name and value is value and then set self.nodes[node__body_row['entity_id']]['body'] = node__body_row (not every node has a node__body entry).
+
+- 2025-11-07
+
+
+Use OrderedDict throughout to help mimic the original entry order during conversion in the case of one-to-many links.
+```
+from typing import (
+    Any,
+    # Dict,
+    List,
+    Optional,
+    OrderedDict as ODType,
+)
+from collections import OrderedDict
+```
+Also, queries like:
+```python
+            SELECT n.*, nfd.*
+            FROM node n
+            JOIN node_field_data nfd ON n.nid = nfd.nid AND n.vid = nfd.vid
+            WHERE n.type IN ('page', 'article', 'installation', 'kit') AND nfd.status = 1
+            ORDER BY n.type, nfd.title
+```
+are way too limiting. I specifically said to do all joins manually in Python. I do not want to skip any disjoint data in any table. So go even further than I originally specified. For example:
+```
+    def _load_body(self) -> None:
+        """Load node__body table entries."""
+        self.orphanedNodeBody = OrderedDict()
+        self.cur.execute("SHOW TABLES LIKE 'node__body'")
+        if not self.cur.fetchone():
+            return
+
+        self.cur.execute("SELECT * FROM node__body WHERE deleted = 0")
+        for row in self.cur.fetchall():
+            nid = row["entity_id"]
+            if nid in self.nodes:
+                self.nodes[nid]["body"] = row
+            else:
+                self.orphanedNodeBody[nid] = row
+
+    def export_json(self, path: str) -> None:
+        """Export full state to JSON."""
+        data = OrderedDict()
+        data["users"] = self.users
+        data["users_data"] = self.users_data
+        data["users_field_data"] = self.users_field_data
+        data["taxonomies"] = self.taxonomies
+        data["files"] = self.files
+        data["path_alias"] = self.path_alias
+        data["nodes"] = self.nodes
+        data["node_body_orphans"] = self.orphanedNodeBody
+        with open(path, "w", ) as f:
+            json.dump(data, f, indent=2, default=str)
+```
+
+I said to use OrderedDict *everywhere* I don't want to see any `{}` nor `dict`:
+```
+        # Core collections
+        self.users: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.users_data: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.users_field_data: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.taxonomies: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.files: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.path_alias: ODType[str, ODType[str, Any]] = OrderedDict()
+        self.nodes: ODType[int, ODType[str, Any]] = OrderedDict()
+. . .
+
+    def export_json(self, path: str) -> None:
+        """Export full state to JSON."""
+        data = OrderedDict()
+        data["users"] = self.users
+        data["users_data"] = self.users_data
+        data["users_field_data"] = self.users_field_data
+        data["taxonomies"] = self.taxonomies
+        data["files"] = self.files
+        data["path_alias"] = self.path_alias
+        data["nodes"] = self.nodes
+        data["node_body_orphans"] = self.orphanedNodeBody
+        with open(path, "w", ) as f:
+            json.dump(data, f, indent=2, default=str)
+. . .
+
+settings = OrderedDict()
+```
+
+Don't use ORDER BY, I said I wanted to preserve the way the entries would appear in Drupal. Also casting to OrderedDict from dict is not useful!
+```
+OrderedDict({
+                                "nid": target_id,
+                                "title": self.nodes[target_id]["data"]["title"],
+                                "type": self.nodes[target_id]["type"],
+                                "field": field_name
+                            })
+```
+would not ensure the order. Set each key like in the example I gave.
+
+Stop doing silly manual calls like
+```
+file_od["fid"] = row["fid"]
+            file_od["uuid"] = row["uuid"]
+            file_od["langcode"] = row["langcode"]
+            file_od["uid"] = row["uid"]
+            file_od["filename"] = row["filename"]
+            file_od["uri"] = row["uri"]
+            file_od["filemime"] = row["filemime"]
+            file_od["filesize"] = row["filesize"]
+            file_od["status"] = row["status"]
+            file_od["created"] = row["created"]
+            file_od["changed"] = row["changed"]
+            file_od["type"] = row["type"]
+```
+Just iterate through each field, and use the column name as the key like I original said, and use whatever order mysql provides the fields in.

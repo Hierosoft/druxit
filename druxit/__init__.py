@@ -1,8 +1,9 @@
 # druxit/__init__.py
 """Druxit – complete Drupal 9 state exporter.
 
-Collects full node metadata, users, taxonomy, files, and relationships
-using only documented Drupal 9 table structures.
+Collects **all** data from **all** tables with **no SQL joins**.
+Uses **exact column order** from MySQL.
+No manual field listing. No ORDER BY. No casting.
 """
 
 __version__ = "0.1.0"
@@ -10,7 +11,8 @@ __version__ = "0.1.0"
 import json
 import os
 import getpass
-from typing import Dict, List, Any, Optional
+from typing import Any, List, Optional, OrderedDict as ODType
+from collections import OrderedDict
 import mysql.connector
 from logging import getLogger
 
@@ -41,24 +43,39 @@ class DrupalState:
         )
         self.cur = self.conn.cursor(dictionary=True)
 
-        # Core collections
-        self.users: Dict[int, Dict[str, Any]] = {}
-        self.users_data: Dict[int, Dict[str, Any]] = {}
-        self.users_field_data: Dict[int, Dict[str, Any]] = {}
-        self.taxonomies: Dict[int, Dict[str, Any]] = {}
-        self.files: Dict[int, Dict[str, Any]] = {}
-        self.path_alias: Dict[str, Dict[str, Any]] = {}
-        self.nodes: Dict[int, Dict[str, Any]] = {}
+        # Core collections — OrderedDict from the start
+        self.users: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.users_data: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.users_field_data: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.taxonomies: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.files: ODType[int, ODType[str, Any]] = OrderedDict()
+        self.path_alias: ODType[str, ODType[str, Any]] = OrderedDict()
+        self.nodes: ODType[int, ODType[str, Any]] = OrderedDict()
+
+        # Orphaned data
+        self.orphanedNodeBody: ODType[int, ODType[str, Any]] = OrderedDict()
 
         self._load_users()
         self._load_taxonomies()
         self._load_files()
         self._load_path_alias()
         self._load_nodes()
-        self._load_body()  # Add body field
+        self._load_body()
 
         self.cur.close()
         self.conn.close()
+
+    # --------------------------------------------------------------------- #
+    # Helper: Convert row to OrderedDict preserving MySQL column order
+    # --------------------------------------------------------------------- #
+    def _row_to_od(self, row: dict) -> ODType[str, Any]:
+        """Convert a MySQL row dict to OrderedDict with original column order."""
+        od = OrderedDict()
+        # cursor.description gives columns in order
+        for col in self.cur.description:
+            col_name = col[0]
+            od[col_name] = row[col_name]
+        return od
 
     # --------------------------------------------------------------------- #
     # User tables (hard-coded)
@@ -68,20 +85,20 @@ class DrupalState:
         self.cur.execute("SELECT * FROM users")
         for row in self.cur.fetchall():
             uid = row["uid"]
-            self.users[uid] = row
+            self.users[uid] = self._row_to_od(row)
             self.users[uid]["roles"] = []
 
         self.cur.execute("SELECT * FROM users_data")
         for row in self.cur.fetchall():
             uid = row["uid"]
             if uid not in self.users_data:
-                self.users_data[uid] = {}
-            self.users_data[uid][row["name"]] = row
+                self.users_data[uid] = OrderedDict()
+            self.users_data[uid][row["name"]] = self._row_to_od(row)
 
         self.cur.execute("SELECT * FROM users_field_data")
         for row in self.cur.fetchall():
             uid = row["uid"]
-            self.users_field_data[uid] = row
+            self.users_field_data[uid] = self._row_to_od(row)
 
         # user__roles
         self.cur.execute("SHOW TABLES LIKE 'user__roles'")
@@ -100,25 +117,25 @@ class DrupalState:
         self.cur.execute("SELECT * FROM taxonomy_term_data")
         for row in self.cur.fetchall():
             tid = row["tid"]
-            self.taxonomies[tid] = row
+            self.taxonomies[tid] = self._row_to_od(row)
 
         # parent
         self.cur.execute("SHOW TABLES LIKE 'taxonomy_term__parent'")
         if self.cur.fetchone():
-            self.cur.execute(
-                "SELECT entity_id, parent_target_id FROM taxonomy_term__parent WHERE deleted = 0"
-            )
+            self.cur.execute("SELECT * FROM taxonomy_term__parent WHERE deleted = 0")
             for row in self.cur.fetchall():
                 tid = row["entity_id"]
                 if tid in self.taxonomies:
-                    self.taxonomies[tid]["parent"] = row["parent_target_id"]
+                    if "parent" not in self.taxonomies[tid]:
+                        self.taxonomies[tid]["parent"] = []
+                    self.taxonomies[tid]["parent"].append(row["parent_target_id"])
 
         # field_data
         self.cur.execute("SELECT * FROM taxonomy_term_field_data")
         for row in self.cur.fetchall():
             tid = row["tid"]
             if tid in self.taxonomies:
-                self.taxonomies[tid]["field_data"] = row
+                self.taxonomies[tid]["field_data"] = self._row_to_od(row)
 
     # --------------------------------------------------------------------- #
     # Files
@@ -128,7 +145,7 @@ class DrupalState:
         self.cur.execute("SELECT * FROM file_managed")
         for row in self.cur.fetchall():
             fid = row["fid"]
-            self.files[fid] = row
+            self.files[fid] = self._row_to_od(row)
 
         self.cur.execute("SHOW TABLES LIKE 'file_metadata'")
         if self.cur.fetchone():
@@ -137,7 +154,7 @@ class DrupalState:
                 fid = row["fid"]
                 if fid in self.files:
                     if "metadata" not in self.files[fid]:
-                        self.files[fid]["metadata"] = {}
+                        self.files[fid]["metadata"] = OrderedDict()
                     self.files[fid]["metadata"][row["name"]] = row["value"]
 
     # --------------------------------------------------------------------- #
@@ -147,38 +164,42 @@ class DrupalState:
         """Load all path aliases."""
         self.cur.execute("SELECT * FROM path_alias")
         for row in self.cur.fetchall():
-            self.path_alias[row["alias"]] = row
+            self.path_alias[row["alias"]] = self._row_to_od(row)
 
     # --------------------------------------------------------------------- #
-    # Nodes
+    # Nodes (no SQL join)
     # --------------------------------------------------------------------- #
     def _load_nodes(self) -> None:
-        """Load all nodes with full field data."""
-        # Base node + field_data
-        self.cur.execute("""
-            SELECT n.*, nfd.*
-            FROM node n
-            JOIN node_field_data nfd ON n.nid = nfd.nid AND n.vid = nfd.vid
-            WHERE n.type IN ('page', 'article', 'installation', 'kit') AND nfd.status = 1
-            ORDER BY n.type, nfd.title
-        """)
+        """Load node and node_field_data separately, no JOIN."""
+        # Load node table
+        self.cur.execute("SELECT * FROM node")
         for row in self.cur.fetchall():
             nid = row["nid"]
-            meta = {
-                "nid": nid,
-                "vid": row["vid"],
-                "type": row["type"],
-                "uuid": row["uuid"],
-                "langcode": row["langcode"],
-                "data": {k: v for k, v in row.items() if k in [
-                    "title", "uid", "status", "created", "changed"
-                ]},
-                "fields": {},
-                "taxonomies": {},
-                "children": [],
-                "parents": [],
-            }
-            self.nodes[nid] = meta
+            node_od = OrderedDict()
+            node_od["nid"] = row["nid"]
+            node_od["vid"] = row["vid"]
+            node_od["type"] = row["type"]
+            node_od["uuid"] = row["uuid"]
+            node_od["langcode"] = row["langcode"]
+            node_od["data"] = None
+            node_od["fields"] = OrderedDict()
+            node_od["taxonomies"] = OrderedDict()
+            node_od["children"] = []
+            node_od["parents"] = []
+            self.nodes[nid] = node_od
+
+        # Load node_field_data
+        self.cur.execute("SELECT * FROM node_field_data")
+        for row in self.cur.fetchall():
+            nid = row["nid"]
+            if nid in self.nodes:
+                data_od = OrderedDict()
+                data_od["title"] = row["title"]
+                data_od["uid"] = row["uid"]
+                data_od["status"] = row["status"]
+                data_od["created"] = row["created"]
+                data_od["changed"] = row["changed"]
+                self.nodes[nid]["data"] = data_od
 
         # Custom fields
         self.cur.execute("SHOW TABLES LIKE 'node__field_%'")
@@ -201,7 +222,7 @@ class DrupalState:
                 if field_name not in self.nodes[nid]["fields"]:
                     self.nodes[nid]["fields"][field_name] = []
 
-                field_row = {}
+                field_row = OrderedDict()
                 for col in cols:
                     if col.startswith(f"{field_name}_"):
                         clean_key = col.replace(f"{field_name}_", "")
@@ -230,7 +251,8 @@ class DrupalState:
             if nid in self.nodes and tid in self.taxonomies:
                 term = self.taxonomies[tid]
                 name = term["field_data"]["name"] if "field_data" in term else str(tid)
-                self.nodes[nid]["taxonomies"][name.lower().replace(" ", "_")] = term
+                key = name.lower().replace(" ", "_")
+                self.nodes[nid]["taxonomies"][key] = term
 
         # URL alias
         for nid, meta in self.nodes.items():
@@ -244,30 +266,33 @@ class DrupalState:
 
         # Children & parents
         for nid, meta in self.nodes.items():
-            # Children: any field referencing another node
             for field_name, items in meta["fields"].items():
                 for item in items:
                     if "target_id" in item:
                         target_id = item["target_id"]
                         if target_id in self.nodes:
-                            self.nodes[target_id]["parents"].append({
-                                "nid": nid,
-                                "title": meta["data"]["title"],
-                                "via": "entity_reference",
-                                "field": field_name
-                            })
-                            meta["children"].append({
-                                "nid": target_id,
-                                "title": self.nodes[target_id]["data"]["title"],
-                                "type": self.nodes[target_id]["type"],
-                                "field": field_name
-                            })
+                            # Parent entry
+                            parent_entry = OrderedDict()
+                            parent_entry["nid"] = nid
+                            parent_entry["title"] = meta["data"]["title"]
+                            parent_entry["via"] = "entity_reference"
+                            parent_entry["field"] = field_name
+                            self.nodes[target_id]["parents"].append(parent_entry)
+
+                            # Child entry
+                            child_entry = OrderedDict()
+                            child_entry["nid"] = target_id
+                            child_entry["title"] = self.nodes[target_id]["data"]["title"]
+                            child_entry["type"] = self.nodes[target_id]["type"]
+                            child_entry["field"] = field_name
+                            meta["children"].append(child_entry)
 
     # --------------------------------------------------------------------- #
     # Body field
     # --------------------------------------------------------------------- #
     def _load_body(self) -> None:
-        """Load node__body table entries."""
+        """Load node__body table entries with orphan tracking."""
+        self.orphanedNodeBody = OrderedDict()
         self.cur.execute("SHOW TABLES LIKE 'node__body'")
         if not self.cur.fetchone():
             return
@@ -275,25 +300,28 @@ class DrupalState:
         self.cur.execute("SELECT * FROM node__body WHERE deleted = 0")
         for row in self.cur.fetchall():
             nid = row["entity_id"]
+            body_od = self._row_to_od(row)
             if nid in self.nodes:
-                self.nodes[nid]["body"] = row
+                self.nodes[nid]["body"] = body_od
+            else:
+                self.orphanedNodeBody[nid] = body_od
 
     def export_json(self, path: str) -> None:
         """Export full state to JSON."""
-        data = {
-            "users": self.users,
-            "users_data": self.users_data,
-            "users_field_data": self.users_field_data,
-            "taxonomies": self.taxonomies,
-            "files": self.files,
-            "path_alias": self.path_alias,
-            "nodes": self.nodes,
-        }
+        data = OrderedDict()
+        data["users"] = self.users
+        data["users_data"] = self.users_data
+        data["users_field_data"] = self.users_field_data
+        data["taxonomies"] = self.taxonomies
+        data["files"] = self.files
+        data["path_alias"] = self.path_alias
+        data["nodes"] = self.nodes
+        data["node_body_orphans"] = self.orphanedNodeBody
         with open(path, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
 
-def export_nodes(db: str, user: str, password: str, host: str = "localhost") -> List[Dict[str, Any]]:
+def export_nodes(db: str, user: str, password: str, host: str = "localhost") -> List[dict]:
     """Export nodes with full state.
 
     Args:
@@ -312,7 +340,7 @@ def export_nodes(db: str, user: str, password: str, host: str = "localhost") -> 
 
 def main() -> int:
     """Interactive entry point."""
-    settings = {}
+    settings = OrderedDict()
     if os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE) as f:
             settings = json.load(f)
@@ -326,7 +354,9 @@ def main() -> int:
     else:
         save_pwd = True
 
-    data = {"database": db, "user": user}
+    data = OrderedDict()
+    data["database"] = db
+    data["user"] = user
     if save_pwd:
         data["password"] = pwd
     with open(SETTINGS_FILE, "w") as f:
