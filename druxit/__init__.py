@@ -55,6 +55,7 @@ class DrupalState:
         self._load_files()
         self._load_path_alias()
         self._load_nodes()
+        self._load_body()  # Add body field
 
         self.cur.close()
         self.conn.close()
@@ -261,6 +262,21 @@ class DrupalState:
                                 "type": self.nodes[target_id]["type"],
                                 "field": field_name
                             })
+
+    # --------------------------------------------------------------------- #
+    # Body field
+    # --------------------------------------------------------------------- #
+    def _load_body(self) -> None:
+        """Load node__body table entries."""
+        self.cur.execute("SHOW TABLES LIKE 'node__body'")
+        if not self.cur.fetchone():
+            return
+
+        self.cur.execute("SELECT * FROM node__body WHERE deleted = 0")
+        for row in self.cur.fetchall():
+            nid = row["entity_id"]
+            if nid in self.nodes:
+                self.nodes[nid]["body"] = row
 
     def export_json(self, path: str) -> None:
         """Export full state to JSON."""

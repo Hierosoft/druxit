@@ -469,3 +469,7 @@ Traceback (most recent call last):
 KeyError: 10053
 ```
 Why would you look up the user in files? Correct usage example: tbl: node__field_* {field_name}_target has nothing to do with uid file_managed, {field_name}_target corresponds to fid column of file_managed.
+
+- 2025-11-07
+
+After processing nodes, lets iterate each row in node__body table, make each row into a dictionary node__body_row where key is column name and value is value and then set self.nodes[node__body_row['entity_id']]['body'] = node__body_row (not every node has a node__body entry).
