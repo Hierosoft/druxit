@@ -207,7 +207,6 @@ class DrupalState:
         field_tables = [list(row.values())[0] for row in field_tables_result]
 
         for tbl in field_tables:
-            print(f"\n\ntbl: {tbl}")
             field_name = tbl.replace("node__", "")
             self.cur.execute(f"SHOW COLUMNS FROM `{tbl}`")
             cols = [c["Field"] for c in self.cur.fetchall()]
@@ -235,7 +234,7 @@ class DrupalState:
                     if fid in self.files:
                         field_row["file"] = self.files[fid]
                         file_uid = field_row["file"]["uid"]
-                        print(f'field_row["file"]["uid"] = {file_uid}')
+                        # print(f'field_row["file"]["uid"] = {file_uid}')
                         if file_uid in self.users:
                             field_row["file"]["user"] = self.users[file_uid]
                         else:
@@ -283,7 +282,7 @@ class DrupalState:
                             child_entry = OrderedDict()
                             child_entry["nid"] = target_id
                             child_entry["title"] = self.nodes[target_id]["data"]["title"]
-                            child_entry["type"] = self.nodes[target_id]["type"]
+                            # child_entry["type"] = self.nodes[target_id]["type"]
                             child_entry["field"] = field_name
                             meta["children"].append(child_entry)
 
@@ -317,8 +316,17 @@ class DrupalState:
         data["path_alias"] = self.path_alias
         data["nodes"] = self.nodes
         data["node_body_orphans"] = self.orphanedNodeBody
+        path = os.path.abspath(path)
         with open(path, "w") as f:
             json.dump(data, f, indent=2, default=str)
+        print(f'Saved "{path}"')
+
+    def export_html(self, path: str) -> None:
+        for node in self.nodes:
+            ns_path = os.path.join(path, node['type'])  # e.g. 'page'/custom
+            if not os.path.isdir(ns_path):
+                os.makedirs(ns_path)
+                print(f'Created "{ns_path}"')
 
 
 def export_nodes(db: str, user: str, password: str, host: str = "localhost") -> List[dict]:
@@ -334,7 +342,9 @@ def export_nodes(db: str, user: str, password: str, host: str = "localhost") -> 
         List of node metadata.
     """
     state = DrupalState(db, user, password, host)
-    state.export_json("drupal_export.json")
+    state.export_json("/tmp/drupal_export.json")
+    # state.export_html(os.path.expanduser("~/Documents/druxit-html"))
+    state.export_html("/tmp/druxit-html")
     return list(state.nodes.values())
 
 
